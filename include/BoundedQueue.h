@@ -22,7 +22,6 @@ public:
     {}
 
     void try_push(T value) {
-
         if (back == -1) { // queue is empty
             std::lock_guard<std::mutex> lock(mtx);
             back = front;
@@ -45,15 +44,27 @@ public:
 
     T try_pop() {
         if (back == -1) {
+            {
+                std::lock_guard<std::mutex> lock(mtx);
+                ready = true;
+            }
+            cv.notify_all();
             throw std::runtime_error("Queue is empty");
         }
         if (front == back) {
             std::lock_guard<std::mutex> lock(mtx);
             back = -1;
             ready = true;
-            cv.notify_all();
-            return data[front];
         }
+        else {
+            std::lock_guard<std::mutex> lock(mtx);
+            if (++front == maxSize) {
+                front = 0;
+            }
+            ready = true;
+        }
+        cv.notify_all();
+        return data[front];
     }
 };
 
