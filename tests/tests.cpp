@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include "../include/BoundedQueue.h"
 
-TEST(test, test) {
-    ASSERT_TRUE(true);
+TEST(BoundedQueueTests, test1) {
+    BoundedQueue<int, 30> queue;
+    queue.try_push(1);
+    int ans = queue.try_pop();
+    ASSERT_TRUE(ans == 1);
 }
