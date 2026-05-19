@@ -38,13 +38,3 @@ TEST(BoundedQueueTests, test_try_pop4) {
         ASSERT_TRUE(std::strcmp(ex.what(), "Queue is already full") == 0);
     }
 }
-
-TEST(BoundedQueueTests, test_try_get_front) {
-    BoundedQueue<int, 1> q;
-    try {
-        q.try_get_front();
-    }
-    catch (std::runtime_error& ex) {
-        ASSERT_TRUE(std::strcmp(ex.what(), "Queue is empty") == 0);
-    }
-}

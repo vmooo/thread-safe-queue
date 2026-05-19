@@ -8,24 +8,32 @@
 template<typename T, const size_t maxSize>
 class BoundedQueue {
     std::array<T, maxSize> data;
-    std::condition_variable cv;
+    std::condition_variable cv_for_pop;
+    std::condition_variable cv_for_push;
     mutable std::mutex mtx;
     size_t front;
     size_t back;
-    bool ready;
+    bool ready_for_pop;
+    bool ready_for_push;
+
+    void push_when_empty(const T& value) {
+        std::lock_guard<std::mutex> lock(mtx);
+        back = front;
+        data[back] = value;
+        ready_for_pop = true;
+    }
 
 public:
     BoundedQueue()
         : front(0),
         back(-1),
-        ready(false)
+        ready_for_pop(false),
+        ready_for_push()
     {}
 
-    void try_push(T value) {
+    void try_push(const T& value) {
         if (back == -1) { // queue is empty
-            std::lock_guard<std::mutex> lock(mtx);
-            back = front;
-            data[back] = value;
+            push_when_empty(value);
         }
         else {
             std::lock_guard<std::mutex> lock(mtx);
@@ -33,38 +41,44 @@ public:
                 back = 0;
             }
             if (back == front) {
-                ready = true;
-                cv.notify_all();
+                ready_for_pop = true;
+                cv_for_pop.notify_all();
                 throw std::runtime_error("Queue is already full");
             }
             data[back] = value;
         }
-        cv.notify_all();
+        cv_for_pop.notify_all();
     }
 
     T try_pop() {
         if (back == -1) {
             {
                 std::lock_guard<std::mutex> lock(mtx);
-                ready = true;
+                ready_for_push = true;
             }
-            cv.notify_all();
+            cv_for_push.notify_all();
             throw std::runtime_error("Queue is empty");
         }
         if (front == back) {
             std::lock_guard<std::mutex> lock(mtx);
             back = -1;
-            ready = true;
+            ready_for_push = true;
         }
         else {
             std::lock_guard<std::mutex> lock(mtx);
             if (++front == maxSize) {
                 front = 0;
             }
-            ready = true;
+            ready_for_push = true;
         }
-        cv.notify_all();
+        cv_for_push.notify_all();
         return data[front];
+    }
+
+    void push(T value) {
+        if (back == -1) {
+
+        }
     }
 };
 
