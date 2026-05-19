@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "../include/BoundedQueue.h"
 #include <cstring>
+#include <thread>
 
 TEST(BoundedQueueTests, test_try_pop1) {
     BoundedQueue<int, 30> queue;
@@ -37,4 +38,24 @@ TEST(BoundedQueueTests, test_try_pop4) {
     catch (std::runtime_error& ex) {
         ASSERT_TRUE(std::strcmp(ex.what(), "Queue is already full") == 0);
     }
+}
+
+TEST(BoundedQueueTests, test_push1) {
+    BoundedQueue<int, 5> q;
+    q.push(1);
+    ASSERT_TRUE(q.try_pop() == 1);
+}
+
+TEST(BoundedQueueTests, test_push2) {
+    BoundedQueue<int, 1> q;
+    std::cout << "ща будет push(1)\n";
+    q.push(1);
+    std::jthread t([&q]() {
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
+        std::cout << "ща будет pop\n";
+        q.try_pop();
+    });
+    std::cout << "ща будет push(2)\n";
+    q.push(2);
+    ASSERT_TRUE(q.try_pop() == 2);
 }

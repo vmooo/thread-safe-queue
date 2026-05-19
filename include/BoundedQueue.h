@@ -4,6 +4,8 @@
 #include <condition_variable>
 #include <cstdint>
 #include <memory>
+#include <climits>
+#include <iostream>
 
 template<typename T, const size_t maxSize>
 class BoundedQueue {
@@ -26,13 +28,17 @@ class BoundedQueue {
 public:
     BoundedQueue()
         : front(0),
-        back(-1),
+        back(SIZE_T_MAX),
         ready_for_pop(false),
         ready_for_push()
     {}
 
+    bool isEmpty() const {
+        return back == SIZE_T_MAX;
+    }
+
     void try_push(const T& value) {
-        if (back == -1) { // queue is empty
+        if (isEmpty()) { // queue is empty
             push_when_empty(value);
         }
         else {
@@ -46,22 +52,18 @@ public:
                 throw std::runtime_error("Queue is already full");
             }
             data[back] = value;
+            ready_for_pop = true;
         }
         cv_for_pop.notify_all();
     }
 
     T try_pop() {
-        if (back == -1) {
-            {
-                std::lock_guard<std::mutex> lock(mtx);
-                ready_for_push = true;
-            }
-            cv_for_push.notify_all();
+        if (isEmpty()) {
             throw std::runtime_error("Queue is empty");
         }
         if (front == back) {
             std::lock_guard<std::mutex> lock(mtx);
-            back = -1;
+            back = SIZE_T_MAX;
             ready_for_push = true;
         }
         else {
@@ -75,10 +77,30 @@ public:
         return data[front];
     }
 
-    void push(T value) {
-        if (back == -1) {
-
+    void push(const T& value) {
+        if (back == front) {
+            std::unique_lock lock(mtx);
+            ready_for_push = false;
+            cv_for_push.wait(lock, [this]() {
+                return ready_for_push;
+            });
         }
+        if (isEmpty()) {
+            push_when_empty(value);
+        }
+        else {
+            {
+                std::lock_guard<std::mutex> lock(mtx);
+                ++back;
+            }
+            if (back == maxSize) {
+                std::lock_guard<std::mutex> lock(mtx);
+                back = 0;
+            }
+            data[back] = value;
+            ready_for_pop = true;
+        }
+        cv_for_pop.notify_all();
     }
 };
 

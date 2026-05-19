@@ -28,3 +28,5 @@ target_link_libraries(tests PRIVATE BoundedQueue gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(tests)
+
+set(CMAKE_CXX_SANITIZER "thread")
