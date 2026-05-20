@@ -55,14 +55,14 @@ public:
             }
             if (back == front) {
                 ready_for_pop = true;
-                cv_for_pop.notify_all();
+                cv_for_pop.notify_one();
                 throw std::runtime_error("Queue is already full");
             }
             ++numberOfElements;
             data[back] = value;
             ready_for_pop = true;
         }
-        cv_for_pop.notify_all();
+        cv_for_pop.notify_one();
     }
 
     T try_pop() {
@@ -83,7 +83,7 @@ public:
             --numberOfElements;
             ready_for_push = true;
         }
-        cv_for_push.notify_all();
+        cv_for_push.notify_one();
         return data[front];
     }
 
@@ -112,7 +112,7 @@ public:
             data[back] = value;
             ready_for_pop = true;
         }
-        cv_for_pop.notify_all();
+        cv_for_pop.notify_one();
     }
 
     T pop() {
@@ -137,7 +137,7 @@ public:
             --numberOfElements;
             ready_for_push = true;
         }
-        cv_for_push.notify_all();
+        cv_for_push.notify_one();
         return data[front];
     }
 
