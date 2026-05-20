@@ -4,6 +4,8 @@ project(boundedQueue)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_CXX_SANITIZER "thread")
+
 add_library(BoundedQueue STATIC src/BoundedQueue.cpp)
 
 target_include_directories(BoundedQueue
@@ -24,9 +26,17 @@ enable_testing()
 
 add_executable(tests tests/tests.cpp)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(tests PRIVATE
+            $<$<CONFIG:Debug>:-fsanitize=address,undefined -g -O0 -fno-omit-frame-pointer>
+    )
+    target_link_options(tests PRIVATE
+            $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+    )
+endif ()
+
 target_link_libraries(tests PRIVATE BoundedQueue gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(tests)
 
-set(CMAKE_CXX_SANITIZER "thread")

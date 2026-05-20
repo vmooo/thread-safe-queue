@@ -59,3 +59,20 @@ TEST(BoundedQueueTests, test_push2) {
     q.push(2);
     ASSERT_TRUE(q.try_pop() == 2);
 }
+
+TEST(BoundedQueueTests, test_pop1) {
+    BoundedQueue<int, 1> q;
+    q.push(1);
+    q.pop();
+    ASSERT_TRUE(q.isEmpty());
+}
+
+TEST(BoundedQueueTests, test_pop2) {
+    BoundedQueue<int, 1> q;
+    std::jthread t([&q]() {
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
+        q.push(1);
+    });
+    q.pop();
+    ASSERT_TRUE(q.isEmpty());
+}

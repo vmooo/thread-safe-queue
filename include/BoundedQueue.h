@@ -102,6 +102,30 @@ public:
         }
         cv_for_pop.notify_all();
     }
+
+    T pop() {
+        if (isEmpty()) {
+            std::unique_lock lock(mtx);
+            ready_for_pop = false;
+            cv_for_pop.wait(lock, [this]() {
+               return ready_for_pop;
+            });
+        }
+        if (front == back) {
+            std::lock_guard<std::mutex> lock(mtx);
+            back = SIZE_T_MAX;
+            ready_for_push = true;
+        }
+        else {
+            std::lock_guard<std::mutex> lock(mtx);
+            if (++front == maxSize) {
+                front = 0;
+            }
+            ready_for_push = true;
+        }
+        cv_for_push.notify_all();
+        return data[front];
+    }
 };
 
 #endif //THREAD_SAFE_QUEUE_BOUNDEDQUEUE_H
