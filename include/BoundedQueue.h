@@ -97,6 +97,7 @@ public:
                 std::lock_guard<std::mutex> lock(mtx);
                 back = 0;
             }
+            std::lock_guard<std::mutex> lock(mtx);
             data[back] = value;
             ready_for_pop = true;
         }
