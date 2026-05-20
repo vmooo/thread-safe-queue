@@ -90,4 +90,23 @@ namespace BoundedQueueTests_group2 {
         q.push(2);
         ASSERT_TRUE(q.get_front() == 1);
     }
+
+    TEST(BoundedQueueTests_group2, test4) {
+        for (long long i = 3; i <= 10; i++) {
+            q.push(i);
+        }
+        std::jthread t([] {
+            std::this_thread::sleep_for(std::chrono::microseconds(500));
+            q.pop();
+        });
+        q.push(11);
+        ASSERT_TRUE(q.get_front() == 2);
+    }
+
+    TEST(BoundedQueueTests_group2, test5) {
+        for (size_t i = 0; i < 9; i++) {
+            q.try_pop();
+        }
+        ASSERT_TRUE(q.get_front() == 11);
+    }
 }
