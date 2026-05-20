@@ -48,14 +48,11 @@ TEST(BoundedQueueTests, test_push1) {
 
 TEST(BoundedQueueTests, test_push2) {
     BoundedQueue<int, 1> q;
-    std::cout << "ща будет push(1)\n";
     q.push(1);
     std::jthread t([&q]() {
         std::this_thread::sleep_for(std::chrono::microseconds(500));
-        std::cout << "ща будет pop\n";
         q.try_pop();
     });
-    std::cout << "ща будет push(2)\n";
     q.push(2);
     ASSERT_TRUE(q.try_pop() == 2);
 }
@@ -64,7 +61,7 @@ TEST(BoundedQueueTests, test_pop1) {
     BoundedQueue<int, 1> q;
     q.push(1);
     q.pop();
-    ASSERT_TRUE(q.isEmpty());
+    ASSERT_TRUE(q.is_empty());
 }
 
 TEST(BoundedQueueTests, test_pop2) {
@@ -74,5 +71,23 @@ TEST(BoundedQueueTests, test_pop2) {
         q.push(1);
     });
     q.pop();
-    ASSERT_TRUE(q.isEmpty());
+    ASSERT_TRUE(q.is_empty());
+}
+
+namespace BoundedQueueTests_group2 {
+    BoundedQueue<long long, 10> q;
+
+    TEST(BoundedQueueTests_group2, test1) {
+       ASSERT_TRUE(q.is_empty());
+    }
+
+    TEST(BoundedQueueTests_group2, test2) {
+        q.push(1);
+        ASSERT_FALSE(q.is_empty());
+    }
+
+    TEST(BoundedQueueTests_group2, test3) {
+        q.push(2);
+        ASSERT_TRUE(q.get_front() == 1);
+    }
 }

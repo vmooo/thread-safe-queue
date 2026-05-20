@@ -15,6 +15,7 @@ class BoundedQueue {
     mutable std::mutex mtx;
     size_t front;
     size_t back;
+    size_t numberOfElements;
     bool ready_for_pop;
     bool ready_for_push;
 
@@ -22,6 +23,7 @@ class BoundedQueue {
         std::lock_guard<std::mutex> lock(mtx);
         back = front;
         data[back] = value;
+        ++numberOfElements;
         ready_for_pop = true;
     }
 
@@ -29,16 +31,21 @@ public:
     BoundedQueue()
         : front(0),
         back(SIZE_T_MAX),
+        numberOfElements(0),
         ready_for_pop(false),
         ready_for_push()
     {}
 
-    bool isEmpty() const {
-        return back == SIZE_T_MAX;
+    bool is_empty() const {
+        return numberOfElements == 0;
+    }
+
+    bool is_full() const {
+        return numberOfElements == maxSize;
     }
 
     void try_push(const T& value) {
-        if (isEmpty()) { // queue is empty
+        if (is_empty()) { // queue is empty
             push_when_empty(value);
         }
         else {
@@ -51,6 +58,7 @@ public:
                 cv_for_pop.notify_all();
                 throw std::runtime_error("Queue is already full");
             }
+            ++numberOfElements;
             data[back] = value;
             ready_for_pop = true;
         }
@@ -58,12 +66,13 @@ public:
     }
 
     T try_pop() {
-        if (isEmpty()) {
+        if (is_empty()) {
             throw std::runtime_error("Queue is empty");
         }
-        if (front == back) {
+        if (numberOfElements == 1) {
             std::lock_guard<std::mutex> lock(mtx);
             back = SIZE_T_MAX;
+            --numberOfElements;
             ready_for_push = true;
         }
         else {
@@ -71,6 +80,7 @@ public:
             if (++front == maxSize) {
                 front = 0;
             }
+            --numberOfElements;
             ready_for_push = true;
         }
         cv_for_push.notify_all();
@@ -78,14 +88,14 @@ public:
     }
 
     void push(const T& value) {
-        if (back == front) {
+        if (is_full()) {
             std::unique_lock lock(mtx);
             ready_for_push = false;
             cv_for_push.wait(lock, [this]() {
                 return ready_for_push;
             });
         }
-        if (isEmpty()) {
+        if (is_empty()) {
             push_when_empty(value);
         }
         else {
@@ -98,6 +108,7 @@ public:
                 back = 0;
             }
             std::lock_guard<std::mutex> lock(mtx);
+            ++numberOfElements;
             data[back] = value;
             ready_for_pop = true;
         }
@@ -105,16 +116,17 @@ public:
     }
 
     T pop() {
-        if (isEmpty()) {
+        if (is_empty()) {
             std::unique_lock lock(mtx);
             ready_for_pop = false;
             cv_for_pop.wait(lock, [this]() {
                return ready_for_pop;
             });
         }
-        if (front == back) {
+        if (numberOfElements == 1) {
             std::lock_guard<std::mutex> lock(mtx);
             back = SIZE_T_MAX;
+            --numberOfElements;
             ready_for_push = true;
         }
         else {
@@ -122,9 +134,14 @@ public:
             if (++front == maxSize) {
                 front = 0;
             }
+            --numberOfElements;
             ready_for_push = true;
         }
         cv_for_push.notify_all();
+        return data[front];
+    }
+
+    T get_front() {
         return data[front];
     }
 };
